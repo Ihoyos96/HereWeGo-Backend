@@ -53,23 +53,32 @@ io.on('connection', (socket) => {
     socket.on('acceptTrip', async (data) => {
         const { tripId, driverId } = data;
 
-        // Update the trip in the database
         try {
-            let trip = await client.execute("SELECT tripData FROM trips WHERE tripId = ?", [tripId]);
-            if (trip.length > 0) {
-                trip = JSON.parse(trip[0].tripData);
+            // Fetching the existing trip data
+            let result = await client.execute({
+                sql: "SELECT tripData FROM trips WHERE tripId = ?",
+                args: [tripId]
+            });
+
+            if (result.rows.length > 0) {
+                let trip = JSON.parse(result.rows[0].tripData);
                 trip.driverId = driverId;
                 trip.tripStatus = 'assigned';
 
-                await client.execute("UPDATE trips SET tripData = ? WHERE tripId = ?", [JSON.stringify(trip), tripId]);
+                // Updating the trip data with the assigned driver
+                await client.execute({
+                    sql: "UPDATE trips SET tripData = ? WHERE tripId = ?",
+                    args: [JSON.stringify(trip), tripId]
+                });
+
                 io.emit('tripUpdated', trip); // Notify the customer app
             }
         } catch (err) {
             console.error(err);
-            // Handle error
         }
     });
 });
+
 
 // Start the server
 server.listen(3000, () => {
