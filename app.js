@@ -1,12 +1,12 @@
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
+const { createServer } = require("http");
+const { Server } = require("socket.io");
 const { createClient } = require('@libsql/client');
 const config = require('./config'); // Ensure you have a config.js file with authToken
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+const httpServer = createServer(app);
+const io = new Server(httpServer, { /* options */ });
 
 // Database connection
 const client = createClient({
@@ -30,6 +30,15 @@ checkDatabaseConnection();
 
 app.use(express.json()); // For parsing application/json
 
+app.use((req, res, next) => {
+    console.log(`HTTP Request - Method: ${req.method}, URL: ${req.url}, IP: ${req.ip}`);
+    next();
+});
+
+
+// MARK: - BEGIN ENDPOINTS -----------------
+
+
 // Endpoint to create a new trip
 app.post('/createTrip', async (req, res) => {
     const newTrip = req.body;
@@ -40,6 +49,7 @@ app.post('/createTrip', async (req, res) => {
             args: [newTrip.tripId, JSON.stringify(newTrip)]
         });
         res.status(200).send({ tripId: newTrip.tripId });
+        console.log('Trip Created Successfully ?', newTrip.tripId)
         io.emit('newTrip', newTrip);
     } catch (err) {
         res.status(500).send('Error storing trip');
@@ -50,6 +60,7 @@ app.post('/createTrip', async (req, res) => {
 
 // Handling trip acceptance by a driver
 io.on('connection', (socket) => {
+    console.log('A client connected with socket id:', socket.id);
     socket.on('acceptTrip', async (data) => {
         const { tripId, driverId } = data;
 
@@ -81,6 +92,6 @@ io.on('connection', (socket) => {
 
 
 // Start the server
-server.listen(3000, () => {
+httpServer.listen(3000, () => {
     console.log('Listening on *:3000');
 });
