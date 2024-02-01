@@ -17,6 +17,7 @@
     "https": "^1.0.0",
     "socker.io": "^0.0.0-alpha-beta",
     "socket.io": "^4.7.4",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "ws": "^8.16.0"
   }
 }
